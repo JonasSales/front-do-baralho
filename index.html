@@ -40,11 +40,9 @@
 
     <div id="listaJogadores"></div>
 
-    <h2>Iniciar Jogo</h2>
     <button onclick="iniciarJogo()">Iniciar Jogo</button>
-
-    <h2>Comprar Carta</h2>
     <button onclick="comprarCarta()">Comprar Carta</button>
+    <button onclick="obterProximoJogador()">Passe a vez</button>
 
     <h2>Finalizar Jogo</h2>
     <button onclick="finalizarJogo()" id="btnFinalizar">Finalizar Jogo</button>
@@ -94,15 +92,14 @@
             })
             .then(response => response.text())
             .then(data => {
-                console.log(data);  // Exibe resposta do servidor
-                obterCartas(); // Agora as cartas são obtidas após a inicialização do jogo
-                obterProximoJogador(); // Obtém o primeiro jogador após inicializar
+                console.log(data);
+                obterCartas();
+                obterProximoJogador();
             })
             .catch(error => console.error("Erro ao iniciar o jogo:", error));
         }
 
         function comprarCarta() {
-            // Obtendo o nome do jogador atual
             const nomeJogador = document.getElementById('vezDoJogador').textContent.replace('Agora é a vez de ', '').trim();
 
             fetch(`${baseURL}/comprar/${nomeJogador}`, {
@@ -111,11 +108,67 @@
             })
             .then(response => response.text())
             .then(data => {
-                alert(data);  // Exibe a resposta
-                obterCartas(); // Atualiza as cartas
-                obterProximoJogador(); // Passa para o próximo jogador
+                alert(data);
+                obterCartas();
+                verificarPerda(nomeJogador);
             })
             .catch(error => console.error("Erro ao comprar carta:", error));
+        }
+
+        function verificarPerda(nomeJogador) {
+            fetch(`${baseURL}/cartas`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let jogadorEncontrado = data.find(jogador => jogador.startsWith(nomeJogador));
+                if (jogadorEncontrado) {
+                    let pontuacao = parseInt(jogadorEncontrado.split(" | Pontuação: ")[1]);
+                    if (pontuacao > 21) {
+                        alert(`${nomeJogador} estourou e perdeu a vez!`);
+                        obterProximoJogador();
+                    }
+                }
+            })
+            .catch(error => console.error("Erro ao verificar perda:", error));
+        }
+
+        function obterProximoJogador() {
+            fetch(`${baseURL}/proximoJogador`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.nome) {
+                    alert("Erro: Nenhum jogador retornado.");
+                    return;
+                }
+
+                // Agora verificar se esse jogador pode jogar
+                fetch(`${baseURL}/cartas`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(cartasData => {
+                    let jogadorAtual = cartasData.find(jogador => jogador.startsWith(data.nome));
+
+                    if (jogadorAtual) {
+                        let pontuacao = parseInt(jogadorAtual.split(" | Pontuação: ")[1]);
+
+                        if (pontuacao > 21) {
+                            alert(`${data.nome} estourou! Pulando a vez.`);
+                            return obterProximoJogador(); // Chama recursivamente até achar um jogador válido
+                        }
+                    }
+
+                    document.getElementById('vezDoJogador').textContent = `Agora é a vez de ${data.nome}`;
+                })
+                .catch(error => console.error("Erro ao obter cartas para verificação:", error));
+            })
+            .catch(error => console.error("Erro ao obter próximo jogador:", error));
         }
 
         function finalizarJogo() {
@@ -159,40 +212,11 @@
                 cartasDiv.innerHTML = '';
                 data.forEach(jogador => {
                     const jogadorDiv = document.createElement('div');
-                    const [nome, detalhes] = jogador.split(":");
-                    const estourou = detalhes.includes('Pontuação:') && parseInt(detalhes.split(" | Pontuação: ")[1]) > 21;
                     jogadorDiv.textContent = jogador;
-                    if (estourou) {
-                        jogadorDiv.classList.add('estourou');
-                        jogadorDiv.textContent += " - Estourou!";
-                    }
                     cartasDiv.appendChild(jogadorDiv);
                 });
             })
             .catch(error => console.error("Erro ao obter cartas:", error));
-        }
-
-        function obterProximoJogador() {
-            fetch(`${baseURL}/proximoJogador`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Erro ao obter próximo jogador: " + response.statusText);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.nome) {
-                    const vezDiv = document.getElementById('vezDoJogador');
-                    vezDiv.textContent = `Agora é a vez de ${data.nome}`;
-                    vezDiv.classList.add('vez');
-                } else {
-                    console.error("Resposta inválida do servidor:", data);
-                }
-            })
-            .catch(error => console.error("Erro ao obter próximo jogador:", error));
         }
     </script>
 </body>
