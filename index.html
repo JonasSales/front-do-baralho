@@ -111,6 +111,7 @@
                 alert(data);
                 obterCartas();
                 verificarPerda(nomeJogador);
+                obterProximoJogador();
             })
             .catch(error => console.error("Erro ao comprar carta:", error));
         }
@@ -127,6 +128,7 @@
                     let pontuacao = parseInt(jogadorEncontrado.split(" | Pontuação: ")[1]);
                     if (pontuacao > 21) {
                         alert(`${nomeJogador} estourou e perdeu a vez!`);
+                        estourouJogo(nomeJogador);
                         obterProximoJogador();
                     }
                 }
@@ -217,6 +219,20 @@
                 });
             })
             .catch(error => console.error("Erro ao obter cartas:", error));
+        }
+
+        function estourouJogo(nomeJogador) {
+            fetch(`${baseURL}/estourou/${nomeJogador}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                
+                obterProximoJogador();  // Passa para o próximo jogador
+            })
+            .catch(error => console.error("Erro ao estourar jogo:", error));
         }
     </script>
 </body>
