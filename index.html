@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Blackjack</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #cartas {
+            margin-top: 20px;
+        }
+        #listaJogadores {
+            margin-top: 20px;
+        }
+        .estourou {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo de Blackjack</h1>
+
+    <h2>Adicionar Jogador</h2>
+    <input type="text" id="nomeJogador" placeholder="Digite o nome do jogador">
+    <button onclick="adicionarJogador()">Adicionar Jogador</button>
+
+    <div id="listaJogadores"></div>
+
+    <h2>Iniciar Jogo</h2>
+    <button onclick="iniciarJogo()">Iniciar Jogo</button>
+
+    <h2>Comprar Carta</h2>
+    <input type="text" id="nomeComprador" placeholder="Nome do jogador">
+    <button onclick="comprarCarta()">Comprar Carta</button>
+
+    <h2>Finalizar Jogo</h2>
+    <button onclick="finalizarJogo()" id="btnFinalizar">Finalizar Jogo</button>
+
+
+    <h2>Cartas de Todos os Jogadores</h2>
+    <div id="cartas"></div>
+
+    <script>
+        const baseURL = 'http://localhost:8080/api/blackjack';
+        let jogadores = [];
+        let cooldownAtivo = false;
+
+        function adicionarJogador() {
+            const nome = document.getElementById('nomeJogador').value.trim();
+            if (nome) {
+                jogadores.push(nome);
+                atualizarListaJogadores();
+                document.getElementById('nomeJogador').value = '';
+            } else {
+                alert('Por favor, insira um nome válido para o jogador.');
+            }
+        }
+
+        function atualizarListaJogadores() {
+            const listaDiv = document.getElementById('listaJogadores');
+            listaDiv.innerHTML = '';
+            jogadores.forEach((nome, index) => {
+                const jogadorDiv = document.createElement('div');
+                jogadorDiv.textContent = `${index + 1}. ${nome}`;
+                listaDiv.appendChild(jogadorDiv);
+            });
+        }
+
+        function iniciarJogo() {
+            if (jogadores.length === 0) {
+                alert('Adicione pelo menos um jogador para iniciar o jogo.');
+                return;
+            }
+            obterCartas();
+            fetch(`${baseURL}/iniciar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(jogadores)
+            })
+            .then(response => response.text())
+            .catch(error => console.error("Erro ao iniciar o jogo:", error));
+            obterCartas();
+        }
+
+        function comprarCarta() {
+            const nome = document.getElementById('nomeComprador').value.trim();
+            if (!nome) {
+                alert('Por favor, insira o nome do jogador.');
+                return;
+            }
+
+            fetch(`${baseURL}/comprar/${nome}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                obterCartas();
+            })
+            .catch(error => console.error("Erro ao comprar carta:", error));
+        }
+
+        function finalizarJogo() {
+            if (cooldownAtivo) {
+                alert("Aguarde antes de finalizar o jogo novamente.");
+                return;
+            }
+
+            cooldownAtivo = true;
+            document.getElementById('btnFinalizar').disabled = true;
+
+            fetch(`${baseURL}/finalizar`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+            })
+            .catch(error => console.error("Erro ao finalizar jogo:", error))
+            .finally(() => {
+                setTimeout(() => {
+                    cooldownAtivo = false;
+                    document.getElementById('btnFinalizar').disabled = false;
+                }, 5000);
+            });
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        function obterCartas() {
+            fetch(`${baseURL}/cartas`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const cartasDiv = document.getElementById('cartas');
+                cartasDiv.innerHTML = '';
+                data.forEach(jogador => {
+                    const jogadorDiv = document.createElement('div');
+                    const [nome, detalhes] = jogador.split(":");
+                    const estourou = detalhes.includes('Pontuação:') && parseInt(detalhes.split(" | Pontuação: ")[1]) > 21;
+                    jogadorDiv.textContent = jogador;
+                    if (estourou) {
+                        jogadorDiv.classList.add('estourou');
+                        jogadorDiv.textContent += " - Estourou!";
+                    }
+                    cartasDiv.appendChild(jogadorDiv);
+                });
+            })
+            .catch(error => console.error("Erro ao obter cartas:", error));
+        }
+    </script>
+</body>
+</html>
