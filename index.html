@@ -25,6 +25,10 @@
             color: red;
             font-weight: bold;
         }
+        .vez {
+            color: green;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -40,18 +44,19 @@
     <button onclick="iniciarJogo()">Iniciar Jogo</button>
 
     <h2>Comprar Carta</h2>
-    <input type="text" id="nomeComprador" placeholder="Nome do jogador">
     <button onclick="comprarCarta()">Comprar Carta</button>
 
     <h2>Finalizar Jogo</h2>
     <button onclick="finalizarJogo()" id="btnFinalizar">Finalizar Jogo</button>
 
-
     <h2>Cartas de Todos os Jogadores</h2>
     <div id="cartas"></div>
 
+    <h2>Vez do Jogador:</h2>
+    <div id="vezDoJogador"></div>
+
     <script>
-        const baseURL = 'http://localhost:8080/api/blackjack';
+        const baseURL = 'http://localhost:8080/blackjack';
         let jogadores = [];
         let cooldownAtivo = false;
 
@@ -81,32 +86,34 @@
                 alert('Adicione pelo menos um jogador para iniciar o jogo.');
                 return;
             }
-            obterCartas();
+
             fetch(`${baseURL}/iniciar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(jogadores)
             })
             .then(response => response.text())
+            .then(data => {
+                console.log(data);  // Exibe resposta do servidor
+                obterCartas(); // Agora as cartas são obtidas após a inicialização do jogo
+                obterProximoJogador(); // Obtém o primeiro jogador após inicializar
+            })
             .catch(error => console.error("Erro ao iniciar o jogo:", error));
-            obterCartas();
         }
 
         function comprarCarta() {
-            const nome = document.getElementById('nomeComprador').value.trim();
-            if (!nome) {
-                alert('Por favor, insira o nome do jogador.');
-                return;
-            }
+            // Obtendo o nome do jogador atual
+            const nomeJogador = document.getElementById('vezDoJogador').textContent.replace('Agora é a vez de ', '').trim();
 
-            fetch(`${baseURL}/comprar/${nome}`, {
+            fetch(`${baseURL}/comprar/${nomeJogador}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
             })
             .then(response => response.text())
             .then(data => {
-                alert(data);
-                obterCartas();
+                alert(data);  // Exibe a resposta
+                obterCartas(); // Atualiza as cartas
+                obterProximoJogador(); // Passa para o próximo jogador
             })
             .catch(error => console.error("Erro ao comprar carta:", error));
         }
@@ -163,6 +170,29 @@
                 });
             })
             .catch(error => console.error("Erro ao obter cartas:", error));
+        }
+
+        function obterProximoJogador() {
+            fetch(`${baseURL}/proximoJogador`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erro ao obter próximo jogador: " + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.nome) {
+                    const vezDiv = document.getElementById('vezDoJogador');
+                    vezDiv.textContent = `Agora é a vez de ${data.nome}`;
+                    vezDiv.classList.add('vez');
+                } else {
+                    console.error("Resposta inválida do servidor:", data);
+                }
+            })
+            .catch(error => console.error("Erro ao obter próximo jogador:", error));
         }
     </script>
 </body>
