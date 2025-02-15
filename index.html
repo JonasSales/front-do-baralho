@@ -92,7 +92,6 @@
             })
             .then(response => response.text())
             .then(data => {
-                console.log(data);
                 obterCartas();
                 obterProximoJogador();
             })
@@ -135,7 +134,7 @@
                             // Jogador estourou, marcar como estourado e não passar a vez
                             estourouJogo(nomeJogador);
                             alert(`${nomeJogador} estourou e perdeu!`);
-
+                            obterCartas();
                             // Atualiza a lista de jogadores e passa a vez
                             atualizarListaJogadores();
                             obterProximoJogador();  // Passa para o próximo jogador
