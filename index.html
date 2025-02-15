@@ -183,6 +183,14 @@
                         }
                     }
 
+                const jogadoresRestantes = jogadores.filter(jogador => !jogador.estourou);
+                if (jogadoresRestantes.length === 1) {
+                    // Se houver apenas um jogador restante, finalizar o jogo
+                    alert(`O único jogador restante é ${jogadoresRestantes[0].nome}. Finalizando o jogo!`);
+                    finalizarJogo();
+                    return;  // Impede de passar a vez, já que o jogo foi finalizado
+                }  
+
                     // Se não estourou, passa a vez
                     document.getElementById('vezDoJogador').textContent = `Agora é a vez de ${data.nome}`;
                 })
