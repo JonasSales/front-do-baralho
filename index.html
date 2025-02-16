@@ -1,274 +1,39 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo de Blackjack</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        button {
-            margin: 10px;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #cartas {
-            margin-top: 20px;
-        }
-        #listaJogadores {
-            margin-top: 20px;
-        }
-        .estourou {
-            color: red;
-            font-weight: bold;
-        }
-        .vez {
-            color: green;
-            font-weight: bold;
-        }
-    </style>
+    <title>Blackjack</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Jogo de Blackjack</h1>
+    <h1>Blackjack - Jogo</h1>
 
-    <h2>Adicionar Jogador</h2>
-    <input type="text" id="nomeJogador" placeholder="Digite o nome do jogador">
-    <button onclick="adicionarJogador()">Adicionar Jogador</button>
+    <div id="jogadorAtual">
+        Jogador Atual: <span id="nomeJogadorAtual">Nenhum jogador</span>
+    </div>
 
-    <div id="listaJogadores"></div>
+    <!-- Campo para adicionar jogador -->
+    <div id="adicionarJogador">
+        <input type="text" id="nomeJogador" placeholder="Nome do jogador" />
+        <button id="adicionarJogadorBtn">Adicionar Jogador</button>
+    </div>
 
-    <button onclick="iniciarJogo()">Iniciar Jogo</button>
-    <button onclick="comprarCarta()">Comprar Carta</button>
-    <button onclick="obterProximoJogador()">Passe a vez</button>
+    <!-- Lista de jogadores -->
+    <div id="jogadoresNaMesa">
+        <h2>Jogadores na Mesa:</h2>
+        <ul id="listaJogadores"></ul>
+    </div>
 
-    <h2>Finalizar Jogo</h2>
-    <button onclick="finalizarJogo()" id="btnFinalizar">Finalizar Jogo</button>
+    <button id="iniciarJogo">Iniciar Jogo</button>
+    <button id="comprarCarta">Comprar Carta</button>
+    <button id="finalizarJogo">Finalizar Jogo</button>
 
-    <h2>Cartas de Todos os Jogadores</h2>
-    <div id="cartas"></div>
 
-    <h2>Vez do Jogador:</h2>
-    <div id="vezDoJogador"></div>
 
-    <script>
-        const baseURL = 'http://localhost:8080/blackjack';
-        let jogadores = [];
-        let cooldownAtivo = false;
+    <div id="cartasJogadores"></div>
 
-        function adicionarJogador() {
-            const nome = document.getElementById('nomeJogador').value.trim();
-            if (nome) {
-                jogadores.push({ nome, estourou: false }); // Adiciona o estado 'estourou'
-                atualizarListaJogadores();
-                document.getElementById('nomeJogador').value = '';
-            } else {
-                alert('Por favor, insira um nome válido para o jogador.');
-            }
-        }
 
-        function atualizarListaJogadores() {
-            const listaDiv = document.getElementById('listaJogadores');
-            listaDiv.innerHTML = '';
-            jogadores.forEach((jogador, index) => {
-                const jogadorDiv = document.createElement('div');
-                jogadorDiv.textContent = `${index + 1}. ${jogador.nome} ${jogador.estourou ? "(Estourou)" : ""}`;
-                listaDiv.appendChild(jogadorDiv);
-            });
-        }
-
-        function iniciarJogo() {
-            if (jogadores.length === 0) {
-                alert('Adicione pelo menos um jogador para iniciar o jogo.');
-                return;
-            }
-
-            fetch(`${baseURL}/iniciar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(jogadores.map(j => j.nome)) // Envia apenas os nomes
-            })
-            .then(response => response.text())
-            .then(data => {
-                obterCartas();
-                obterProximoJogador();
-            })
-            .catch(error => console.error("Erro ao iniciar o jogo:", error));
-        }
-
-        function comprarCarta() {
-            const nomeJogador = document.getElementById('vezDoJogador').textContent.replace('Agora é a vez de ', '').trim();
-
-            // Verifica se o jogador estourou
-            const jogador = jogadores.find(j => j.nome === nomeJogador);
-            if (jogador && jogador.estourou) {
-                alert(`${nomeJogador} já estourou! Passando a vez.`);
-                obterProximoJogador();  // Passa a vez automaticamente
-                return;  // Não permite a ação de comprar carta
-            }
-
-            fetch(`${baseURL}/comprar/${nomeJogador}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            })
-            .then(response => response.text())
-            .then(data => {
-                alert(data);
-                obterCartas();  // Atualiza a exibição das cartas
-
-                // Obter as cartas e verificar a pontuação do jogador
-                fetch(`${baseURL}/cartas`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(cartasData => {
-                    let jogadorAtual = cartasData.find(jogador => jogador.startsWith(nomeJogador));
-
-                    if (jogadorAtual) {
-                        let pontuacao = parseInt(jogadorAtual.split(" | Pontuação: ")[1]);
-
-                        if (pontuacao > 21) {
-                            // Jogador estourou, marcar como estourado e não passar a vez
-                            estourouJogo(nomeJogador);
-                            alert(`${nomeJogador} estourou e perdeu!`);
-                            obterCartas();
-                            // Atualiza a lista de jogadores e passa a vez
-                            atualizarListaJogadores();
-                            obterProximoJogador();  // Passa para o próximo jogador
-                            return;  // Não passa a vez e interrompe o fluxo aqui
-                        }
-                    }
-
-                    // Se o jogador não estourou, passa a vez
-                    atualizarListaJogadores();
-                    obterProximoJogador();  // Aqui, passamos para o próximo jogador
-                })
-                .catch(error => console.error("Erro ao verificar pontuação:", error));
-            })
-            .catch(error => console.error("Erro ao comprar carta:", error));
-        }
-
-        function obterProximoJogador() {
-            fetch(`${baseURL}/proximoJogador`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.nome) {
-                    alert("Erro: Nenhum jogador retornado.");
-                    return;
-                }
-
-                // Verificar se o jogador estourou
-                fetch(`${baseURL}/cartas`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(response => response.json())
-                .then(cartasData => {
-                    let jogadorAtual = cartasData.find(jogador => jogador.startsWith(data.nome));
-
-                    if (jogadorAtual) {
-                        let pontuacao = parseInt(jogadorAtual.split(" | Pontuação: ")[1]);
-
-                        if (pontuacao > 21) {
-                            // Jogador estourou, informar e pular a vez
-                            alert(`${data.nome} estourou! Pulando a vez.`);
-                            estourouJogo(data.nome);  // Passando nome correto para estourar
-                            return obterProximoJogador(); // Chama recursivamente até achar um jogador válido
-                        }
-                    }
-
-                const jogadoresRestantes = jogadores.filter(jogador => !jogador.estourou);
-                if (jogadoresRestantes.length === 1) {
-                    // Se houver apenas um jogador restante, finalizar o jogo
-                    alert(`O único jogador restante é ${jogadoresRestantes[0].nome}. Finalizando o jogo!`);
-                    finalizarJogo();
-                    return;  // Impede de passar a vez, já que o jogo foi finalizado
-                }  
-
-                    // Se não estourou, passa a vez
-                    document.getElementById('vezDoJogador').textContent = `Agora é a vez de ${data.nome}`;
-                })
-                .catch(error => console.error("Erro ao obter cartas para verificação:", error));
-            })
-            .catch(error => console.error("Erro ao obter próximo jogador:", error));
-        }
-
-        function finalizarJogo() {
-            if (cooldownAtivo) {
-                alert("Aguarde antes de finalizar o jogo novamente.");
-                return;
-            }
-
-            cooldownAtivo = true;
-            document.getElementById('btnFinalizar').disabled = true;
-
-            fetch(`${baseURL}/finalizar`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.text())
-            .then(data => {
-                alert(data);
-            })
-            .catch(error => console.error("Erro ao finalizar jogo:", error))
-            .finally(() => {
-                setTimeout(() => {
-                    cooldownAtivo = false;
-                    document.getElementById('btnFinalizar').disabled = false;
-                }, 5000);
-            });
-
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        }
-
-        function obterCartas() {
-            fetch(`${baseURL}/cartas`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const cartasDiv = document.getElementById('cartas');
-                cartasDiv.innerHTML = ''; // Limpar as cartas antigas
-
-                // Atualiza as cartas de todos os jogadores
-                data.forEach(jogador => {
-                    const jogadorDiv = document.createElement('div');
-                    jogadorDiv.textContent = jogador;
-                    cartasDiv.appendChild(jogadorDiv);
-                });
-            })
-            .catch(error => console.error("Erro ao obter cartas:", error));
-        }
-
-        function estourouJogo(nomeJogador) {
-            // Atualiza o status do jogador para "estourou"
-            const jogador = jogadores.find(j => j.nome === nomeJogador);
-            if (jogador) {
-                jogador.estourou = true;
-            }
-
-            // Atualiza a lista de jogadores para refletir a mudança
-            atualizarListaJogadores();
-
-            fetch(`${baseURL}/estourou/${nomeJogador}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.text())
-            .then(data => {
-                console.log(data); // Log do sucesso para debug
-            })
-            .catch(error => console.error("Erro ao estourar jogo:", error));
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
