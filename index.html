@@ -9,6 +9,11 @@
 <body>
     <h1>Blackjack Online</h1>
 
+    <div id="jogador-Atual">
+        <h2>Nome jogador atual</h2>
+        <div id="jogador-atual"></div>
+    </div>
+
     <div id="game">
         <div id="players">
             <h2>Jogadores</h2>
@@ -20,12 +25,12 @@
         <div id="controls">
             <button onclick="startGame()">Iniciar Jogo</button>
             <button onclick="getCards()">Mostrar Cartas</button>
+            <button onclick="jogadorAtual()">Atualizar Jogador Atual</button>
             <button onclick="endGame()">Finalizar Jogo</button>
         </div>
 
         <div id="gameplay">
             <h2>Jogar</h2>
-            <input type="text" id="player-action" placeholder="Nome do jogador">
             <button onclick="buyCard()">Comprar Carta</button>
         </div>
 
