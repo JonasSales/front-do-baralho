@@ -1,159 +1,91 @@
-// Função para atualizar o nome do jogador atual
-function atualizarJogadorAtual(jogadorAtual) {
-    const jogadorAtualElement = document.getElementById("nomeJogadorAtual");
-    jogadorAtualElement.textContent = jogadorAtual;
-}
+const API_URL = "http://localhost:8080/blackjack";
 
-// Função para atualizar a lista de jogadores na mesa
-function atualizarListaJogadores() {
-    fetch('http://localhost:8080/blackjack/jogadores', {
-        method: 'GET',
-    })
-    .then(response => response.json())
-    .then(jogadores => {
-        const listaJogadoresElement = document.getElementById("listaJogadores");
-        listaJogadoresElement.innerHTML = ''; // Limpa a lista antes de atualizá-la
-
-        jogadores.forEach(jogador => {
-            const li = document.createElement("li");
-            li.textContent = jogador.nome;
-            listaJogadoresElement.appendChild(li);
-        });
-    })
-    .catch(error => console.error('Erro ao buscar jogadores:', error));
-}
-
-// Função para exibir as cartas dos jogadores
-function exibirCartasJogadores() {
-    fetch('http://localhost:8080/blackjack/cartas', {
-        method: 'GET',
-    })
-    .then(response => response.json())
-    .then(cartasPorJogador => {
-        const cartasJogadoresElement = document.getElementById("cartasJogadores");
-        cartasJogadoresElement.innerHTML = ''; // Limpa a lista de cartas antes de atualizá-la
-
-        for (const jogador in cartasPorJogador) {
-            const div = document.createElement("div");
-            div.classList.add("cartas-jogador");
-
-            const jogadorNome = document.createElement("h3");
-            jogadorNome.textContent = jogador;
-            div.appendChild(jogadorNome);
-
-            const listaCartas = document.createElement("ul");
-            cartasPorJogador[jogador].forEach(carta => {
-                const li = document.createElement("li");
-                li.textContent = carta;
-                listaCartas.appendChild(li);
-            });
-
-            div.appendChild(listaCartas);
-            cartasJogadoresElement.appendChild(div);
-        }
-    })
-    .catch(error => console.error('Erro ao buscar cartas:', error));
-}
-
-// Função para adicionar jogador
-document.getElementById("adicionarJogadorBtn").addEventListener("click", function() {
-    const nomeJogador = document.getElementById("nomeJogador").value;
-
-    if (nomeJogador.trim() === "") {
-        alert("Por favor, insira o nome do jogador.");
+// Adicionar jogador
+function addPlayer() {
+    const playerName = document.getElementById("player-name").value;
+    if (!playerName) {
+        alert("Digite um nome válido.");
         return;
     }
 
-    fetch('http://localhost:8080/blackjack/adicionar', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            nome: nomeJogador
-        })
+    fetch(`${API_URL}/adicionar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: playerName })
     })
     .then(response => response.json())
     .then(data => {
         alert(data.message);
-        // Atualiza o jogador atual e a lista de jogadores após adicionar um jogador
-        if (data.message.includes("adicionado")) {
-            atualizarJogadorAtual(data.jogadorAtual);
-            atualizarListaJogadores();
-        }
-    })
-    .catch(error => console.error('Erro ao adicionar jogador:', error));
-});
+        document.getElementById("player-name").value = "";
+        listPlayers();
+    });
+}
 
-// Função para iniciar o jogo
-document.getElementById("iniciarJogo").addEventListener("click", function() {
-    fetch('http://localhost:8080/blackjack/iniciar', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message === "Jogo iniciado! Cartas distribuídas!") {
-            // Atualiza o jogador atual
-            atualizarJogadorAtual(data.jogadorAtual);
-            // Exibe um alerta de sucesso ao iniciar o jogo
-            alert("Jogo iniciado! Cartas foram distribuídas.");
-        } else {
+// Listar jogadores
+function listPlayers() {
+    fetch(`${API_URL}/jogadores`)
+        .then(response => response.json())
+        .then(players => {
+            const playerList = document.getElementById("player-list");
+            playerList.innerHTML = "";
+            players.forEach(player => {
+                const li = document.createElement("li");
+                li.textContent = player.nome;
+                playerList.appendChild(li);
+            });
+        });
+}
+
+// Iniciar jogo
+function startGame() {
+    fetch(`${API_URL}/iniciar`, { method: "POST" })
+        .then(response => response.json())
+        .then(data => alert(data.message));
+}
+
+// Comprar carta
+function buyCard() {
+    const playerName = document.getElementById("player-action").value;
+    if (!playerName) {
+        alert("Digite um nome válido.");
+        return;
+    }
+
+    fetch(`${API_URL}/comprar/${playerName}`, { method: "POST" })
+        .then(response => response.json())
+        .then(data => {
             alert(data.message);
-        }
-        // Atualiza a lista de jogadores após iniciar o jogo
-        atualizarListaJogadores();
-        // Exibe as cartas dos jogadores após o jogo ser iniciado
-        exibirCartasJogadores();
-    })
-    .catch(error => console.error('Erro ao iniciar jogo:', error));
-});
+            getCards();
+        });
+}
 
-// Função para comprar uma carta
-document.getElementById("comprarCarta").addEventListener("click", function() {
-    const nomeJogador = prompt("Digite o nome do jogador para comprar carta:");
+// Mostrar cartas
+function getCards() {
+    fetch(`${API_URL}/cartas`)
+        .then(response => response.json())
+        .then(cards => {
+            const display = document.getElementById("card-display");
+            display.innerHTML = "";
+            for (const player in cards) {
+                const playerDiv = document.createElement("div");
+                playerDiv.innerHTML = `<h3>${player}</h3>`;
+                cards[player].forEach(card => {
+                    const cardDiv = document.createElement("div");
+                    cardDiv.className = "card";
+                    cardDiv.textContent = card;
+                    playerDiv.appendChild(cardDiv);
+                });
+                display.appendChild(playerDiv);
+            }
+        });
+}
 
-    fetch(`http://localhost:8080/blackjack/comprar/${nomeJogador}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        // Atualiza o jogador atual após a ação
-        atualizarJogadorAtual(data.jogadorAtual);
-        // Atualiza a lista de jogadores após a compra de carta
-        atualizarListaJogadores();
-        // Exibe as cartas dos jogadores após comprar uma carta
-        exibirCartasJogadores();
-    })
-    .catch(error => console.error('Erro ao comprar carta:', error));
-});
+// Finalizar jogo
+function endGame() {
+    fetch(`${API_URL}/finalizar`)
+        .then(response => response.json())
+        .then(data => alert(data.message));
+}
 
-// Função para finalizar o jogo
-document.getElementById("finalizarJogo").addEventListener("click", function() {
-    fetch('http://localhost:8080/blackjack/finalizar', {
-        method: 'GET',
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        // Atualiza o nome do jogador atual para "Nenhum jogador"
-        atualizarJogadorAtual(data.jogadorAtual);
-        // Atualiza a lista de jogadores após finalizar o jogo
-        atualizarListaJogadores();
-        // Limpa as cartas ao finalizar o jogo
-        exibirCartasJogadores();
-    })
-    .catch(error => console.error('Erro ao finalizar jogo:', error));
-});
-
-// Inicializa a lista de jogadores e cartas ao carregar a página
-document.addEventListener("DOMContentLoaded", function() {
-    atualizarListaJogadores();
-    exibirCartasJogadores();
-});
+// Atualiza a lista de jogadores ao carregar
+document.addEventListener("DOMContentLoaded", listPlayers);

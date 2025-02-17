@@ -1,38 +1,39 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack</title>
+    <title>Blackjack Online</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Blackjack - Jogo</h1>
+    <h1>Blackjack Online</h1>
 
-    <div id="jogadorAtual">
-        Jogador Atual: <span id="nomeJogadorAtual">Nenhum jogador</span>
+    <div id="game">
+        <div id="players">
+            <h2>Jogadores</h2>
+            <ul id="player-list"></ul>
+            <input type="text" id="player-name" placeholder="Nome do jogador">
+            <button onclick="addPlayer()">Adicionar Jogador</button>
+        </div>
+
+        <div id="controls">
+            <button onclick="startGame()">Iniciar Jogo</button>
+            <button onclick="getCards()">Mostrar Cartas</button>
+            <button onclick="endGame()">Finalizar Jogo</button>
+        </div>
+
+        <div id="gameplay">
+            <h2>Jogar</h2>
+            <input type="text" id="player-action" placeholder="Nome do jogador">
+            <button onclick="buyCard()">Comprar Carta</button>
+        </div>
+
+        <div id="cards">
+            <h2>Cartas dos Jogadores</h2>
+            <div id="card-display"></div>
+        </div>
     </div>
-
-    <!-- Campo para adicionar jogador -->
-    <div id="adicionarJogador">
-        <input type="text" id="nomeJogador" placeholder="Nome do jogador" />
-        <button id="adicionarJogadorBtn">Adicionar Jogador</button>
-    </div>
-
-    <!-- Lista de jogadores -->
-    <div id="jogadoresNaMesa">
-        <h2>Jogadores na Mesa:</h2>
-        <ul id="listaJogadores"></ul>
-    </div>
-
-    <button id="iniciarJogo">Iniciar Jogo</button>
-    <button id="comprarCarta">Comprar Carta</button>
-    <button id="finalizarJogo">Finalizar Jogo</button>
-
-
-
-    <div id="cartasJogadores"></div>
-
 
     <script src="script.js"></script>
 </body>
