@@ -186,6 +186,7 @@ function finalizarJogo() {
             console.error('Erro ao finalizar jogo:', error);
             alert("Erro ao finalizar o jogo.");
         });
+        window.location.reload();
 }
 
 // Atualiza a lista de jogadores ao carregar
