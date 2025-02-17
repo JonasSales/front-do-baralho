@@ -1,5 +1,6 @@
 const API_URL = "http://localhost:8080/blackjack";
 let playerName;
+
 // Adicionar jogador
 function addPlayer() {
     const playerName = document.getElementById("player-name").value;
@@ -41,7 +42,7 @@ function startGame() {
     fetch(`${API_URL}/iniciar`, { method: "POST" })
         .then(response => response.json())
         .then(data => alert(data.message));
-        jogadorAtual();
+    jogadorAtual();
 }
 
 // Comprar carta
@@ -62,7 +63,6 @@ function buyCard() {
 
     // Enviando o jogador como JSON no corpo da requisição
     fetch(`${API_URL}/comprar`, {
-        
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -79,7 +79,7 @@ function buyCard() {
         alert(data.message);
         getCards();  // Atualiza as cartas do jogador
     })
-    .catch( () => {
+    .catch(() => {
         jogadorAtual();
         alert(`${playerName} estourou a mão`);
     });
@@ -106,7 +106,6 @@ function getCards() {
         });
 }
 
-//Jogador Atual
 // Jogador Atual
 function jogadorAtual() {
     fetch(`${API_URL}/proximoJogador`)
@@ -114,15 +113,20 @@ function jogadorAtual() {
             if (!response.ok) {
                 throw new Error('Erro na resposta da API');
             }
-            return response.json();
+
+            // Verifica se a resposta não está vazia
+            return response.text().then(text => {
+                if (text.trim() === "") {
+                    throw new Error('Não há mais jogadores disponíveis');
+                }
+                return JSON.parse(text); // Parse manual se a resposta não for JSON válido
+            });
         })
         .then(player => {
             const display = document.getElementById("jogador-atual");
             display.innerHTML = "";  // Limpa o conteúdo antes de adicionar o novo jogador
-            // Verifique se 'player' contém as propriedades esperadas
             if (player && player.nome) {
                 const playerDiv = document.createElement("div");
-                // Exibindo as propriedades do jogador
                 playerDiv.innerHTML = `
                     <h3>${player.nome}</h3>
                 `;
@@ -133,15 +137,55 @@ function jogadorAtual() {
         })
         .catch(error => {
             console.error('Erro ao buscar jogador:', error);
+            alert("Não há mais jogadores disponíveis. O jogo será finalizado.");
+            finalizarJogo();  // Função que finaliza o jogo
         });
 }
 
+function encerrarMao() {
+    const playerData = document.getElementById("jogador-atual").textContent.trim().split("\n");
+    const jogador = {
+        nome: playerData[0],  // Supondo que o nome esteja na primeira linha
+    };
+    fetch(`${API_URL}/encerrar`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(jogador)  // Envia o objeto jogador corretamente
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert(data.message);
+
+        try {
+            jogadorAtual();  // Tenta atualizar o jogador atual
+        } catch (error) {
+            console.error("Erro ao atualizar jogador:", error);
+            alert("Não há mais jogadores disponíveis. O jogo será finalizado.");
+            finalizarJogo();  // Função que finaliza o jogo
+        }
+        getCards();  // Atualiza as cartas do jogador
+    })
+    .catch(() => {
+        alert(`${jogador.nome} encerrou a mão`);
+    });
+}
 
 // Finalizar jogo
-function endGame() {
+function finalizarJogo() {
     fetch(`${API_URL}/finalizar`)
         .then(response => response.json())
-        .then(data => alert(data.message));
+        .then(data => alert(data.message))
+        .catch(error => {
+            console.error('Erro ao finalizar jogo:', error);
+            alert("Erro ao finalizar o jogo.");
+        });
 }
 
 // Atualiza a lista de jogadores ao carregar
