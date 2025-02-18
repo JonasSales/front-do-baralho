@@ -131,7 +131,7 @@ function enviarJogada(jogada) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            player: { nome: playerName },
+            player: { nome: playerName[0] },
             jogada: jogada,
         })
     })
