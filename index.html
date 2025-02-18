@@ -1,44 +1,44 @@
-    <!DOCTYPE html>
-    <html lang="pt">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Blackjack Online</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <h1>Blackjack Online</h1>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Blackjack Online</h1>
 
-        <div id="jogador-Atual">
-            <h2>Name of actually player</h2>
-            <div id="jogador-atual"></div>
+    <div id="jogador-Atual">
+        <h2>Jogador Atual</h2>
+        <div id="jogador-atual"></div>
+    </div>
+
+    <div id="game">
+        <div id="players">
+            <h2>Jogadores</h2>
+            <ul id="player-list"></ul>
+            <input type="text" id="player-name" placeholder="Nome do jogador">
+            <button onclick="addPlayer()">Adicionar Jogador</button>
         </div>
 
-        <div id="game">
-            <div id="players">
-                <h2>Players</h2>
-                <ul id="player-list"></ul>
-                <input type="text" id="player-name" placeholder="Nome do jogador">
-                <button onclick="addPlayer()">Add Player</button>
-            </div>
-
-            <div id="controls">
-                <button onclick="startGame()">Start Game</button>
-                <button onclick="getCards()">Showr Cards</button>
-                <button onclick="encerrarMao()">Stand</button>
-            </div>
-
-            <div id="gameplay">
-                <h2>Jogar</h2>
-                <button onclick="buyCard()">Hit</button>
-            </div>
-
-            <div id="cards">
-                <h2>Cartas dos Jogadores</h2>
-                <div id="card-display"></div>
-            </div>
+        <div id="controls">
+            <button onclick="startGame()">Iniciar Jogo</button>
+            <button onclick="getCards()">Mostrar Cartas</button>
+            <button onclick="enviarJogada('stand')">Stand</button>
         </div>
 
-        <script src="script.js"></script>
-    </body>
-    </html>
+        <div id="gameplay">
+            <h2>Jogar</h2>
+            <button onclick="enviarJogada('hit')">Hit</button>
+        </div>
+
+        <div id="cards">
+            <h2>Cartas dos Jogadores</h2>
+            <div id="card-display"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
