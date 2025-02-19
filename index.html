@@ -1,44 +1,42 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack Online</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Blackjack Game</title>
+    <link rel="stylesheet" href="style.css">  <!-- Link para o CSS -->
 </head>
 <body>
-    <h1>Blackjack Online</h1>
+    <header>
+        <h1>Blackjack Game</h1>
+    </header>
 
-    <div id="jogador-Atual">
+    <section id="jogadores">
+        <h2>Jogadores</h2>
+        <ul id="lista-jogadores"></ul>
+    </section>
+
+    <section id="jogador-atual">
         <h2>Jogador Atual</h2>
-        <div id="jogador-atual"></div>
-    </div>
+        <p id="jogador-atual-info">Carregando...</p>
+    </section>
 
-    <div id="game">
-        <div id="players">
-            <h2>Jogadores</h2>
-            <ul id="player-list"></ul>
-            <input type="text" id="player-name" placeholder="Nome do jogador">
-            <button onclick="addPlayer()">Adicionar Jogador</button>
-        </div>
+    <section id="cartas">
+        <h2>Cartas dos Jogadores</h2>
+        <div id="cartas-info"></div>
+    </section>
 
-        <div id="controls">
-            <button onclick="startGame()">Iniciar Jogo</button>
-            <button onclick="getCards()">Mostrar Cartas</button>
-            <button onclick="enviarJogada('stand')">Stand</button>
-        </div>
+    <section id="jogadas">
+        <h2>Jogadas</h2>
+        <button id="hit">Hit</button>
+        <button id="stand">Stand</button>
+    </section>
 
-        <div id="gameplay">
-            <h2>Jogar</h2>
-            <button onclick="enviarJogada('hit')">Hit</button>
-        </div>
+    <section id="mensagens">
+        <h2>Mensagens</h2>
+        <p id="mensagem"></p>
+    </section>
 
-        <div id="cards">
-            <h2>Cartas dos Jogadores</h2>
-            <div id="card-display"></div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script src="script.js"></script>  <!-- Link para o JavaScript -->
 </body>
 </html>
