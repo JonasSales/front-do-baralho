@@ -1,11 +1,15 @@
 const API_URL = "http://localhost:8080/blackjack";
 let playerName;
+let jogoIniciado = false;  // Variável global para verificar se o jogo foi iniciado
 
 // Adicionar jogador
 function addPlayer() {
     const playerName = document.getElementById("player-name").value;
+    console.log("Tentando adicionar jogador:", playerName);
+
     if (!playerName) {
         alert("Digite um nome válido.");
+        console.log("Nome do jogador inválido.");
         return;
     }
 
@@ -17,16 +21,20 @@ function addPlayer() {
     .then(response => response.json())
     .then(data => {
         alert(data.message);
+        console.log("Resposta do servidor (adicionar jogador):", data);
         document.getElementById("player-name").value = "";
         listPlayers();
-    });
+    })
 }
 
 // Listar jogadores
 function listPlayers() {
+    console.log("Buscando jogadores...");
+
     fetch(`${API_URL}/jogadores`)
         .then(response => response.json())
         .then(players => {
+            console.log("Jogadores recebidos:", players);
             const playerList = document.getElementById("player-list");
             playerList.innerHTML = "";
             players.forEach(player => {
@@ -34,22 +42,38 @@ function listPlayers() {
                 li.textContent = player.nome;
                 playerList.appendChild(li);
             });
-        });
+
+            // Verifica se o jogo pode ser iniciado (pelo menos 2 jogadores)
+            if (players.length >= 2 && !jogoIniciado) {
+                jogoIniciado = true;  // Inicia o jogo
+                alert("Jogo iniciado com sucesso!");
+                startGame();
+            }
+        })
+        .then(() => jogadorAtual());  // Atualiza o jogador atual após listar os jogadores
 }
 
 // Iniciar jogo
 function startGame() {
+    console.log("Iniciando o jogo...");
+
     fetch(`${API_URL}/iniciar`, { method: "POST" })
         .then(response => response.json())
-        .then(data => alert(data.message));
-    jogadorAtual();
+        .then(data => {
+            alert(data.message);
+            console.log("Resposta do servidor (iniciar jogo):", data);
+        })
+        .then(() => jogadorAtual());  // Atualiza o jogador atual após iniciar o jogo
 }
 
 // Mostrar cartas
 function getCards() {
+    console.log("Buscando cartas...");
+
     fetch(`${API_URL}/cartas`)
         .then(response => response.json())
         .then(cards => {
+            console.log("Cartas recebidas:", cards);
             const display = document.getElementById("card-display");
             display.innerHTML = "";
             for (const player in cards) {
@@ -63,73 +87,59 @@ function getCards() {
                 });
                 display.appendChild(playerDiv);
             }
-        });
+        })
+        .then(() => jogadorAtual());  // Atualiza o jogador atual após mostrar as cartas
 }
 
 // Jogador Atual
 function jogadorAtual() {
+    if (!jogoIniciado) {
+        console.log("Jogo ainda não iniciado. Aguardando jogadores.");
+        return;
+    }
+
+    console.log("Buscando jogador atual...");
+
     return fetch(`${API_URL}/jogadoratual`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro na resposta da API');
-            }
-
-            return response.json();  // Fazendo o parse para JSON diretamente
-        })
+        .then(response => response.json())
         .then(players => {
-            if (!Array.isArray(players) || players.length === 0) {
-                throw new Error('Nenhum jogador encontrado');
-            }
+            const player = players[0];
+            console.log("Jogador atual:", player);
 
-            const player = players[0];  // Assume-se que o primeiro jogador é o atual
-            // Verifica se o jogador tem pontuação maior que 21
             if (player.pontuacao > 21) {
-                proximoJogador();  // Avança para o próximo jogador
-                return jogadorAtual();
+                console.log("Pontuação do jogador maior que 21. Passando para o próximo jogador...");
+                return proximoJogador().then(() => jogadorAtual());  // Atualiza o jogador atual após passar para o próximo jogador
             }
 
-            // Exibe o nome do jogador, já que sua pontuação é válida
             const display = document.getElementById("jogador-atual");
-            display.innerHTML = "";  // Limpa o conteúdo antes de adicionar o novo jogador
-
-            if (player && player.nome) {
-                const playerDiv = document.createElement("div");
-                playerDiv.innerHTML = `
-                    <h3>${player.nome}</h3>
-                `;
-                display.appendChild(playerDiv);
-                return player.data;  // Retorna true se jogador encontrado e com pontuação válida
-            } else {
-                console.error('Dados do jogador estão incompletos ou ausentes');
-                return null;  // Retorna false se não tiver dados completos
-            }
+            display.innerHTML = `<h3>${player.nome}</h3>`;
+            return player.data;
         })
         .catch(error => {
             console.error('Erro ao buscar jogador:', error);
-            console.log("FInalizou1")
-            finalizarJogo();  // Função que finaliza o jogo
-            return false;  // Retorna false em caso de erro ou falta de jogador
+            finalizarJogo();
+            return false;
         });
 }
 
-
 // Finalizar jogo
 function finalizarJogo() {
+    console.log("Finalizando o jogo...");
+    jogoIniciado = false;  // Define o jogo como não iniciado
+
     fetch(`${API_URL}/finalizar`)
         .then(response => response.json())
-        .then(data => alert(data.message))
-        .catch(error => {
-            console.error('Erro ao finalizar jogo:', error);
-        });
-    //window.location.reload();
+        .then(data => {
+            alert(data.message);
+            console.log("Resposta do servidor (finalizar jogo):", data);
+        })
+        .catch(error => console.error('Erro ao finalizar jogo:', error));
 }
 
 // Enviar jogada
 function enviarJogada(jogada) {
-    const playerName = document.getElementById("jogador-atual").textContent.trim(); // Garantir que seja uma string
-
-    console.log(jogada);
-    console.log(playerName);
+    const playerName = document.getElementById("jogador-atual").textContent.trim();
+    console.log(`Enviando jogada: ${jogada} para o jogador ${playerName}`);
 
     fetch(`${API_URL}/jogada`, {
         method: 'POST',
@@ -137,73 +147,58 @@ function enviarJogada(jogada) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            player: { nome: playerName }, // Garante que seja uma string válida
+            player: { nome: playerName },
             jogada: jogada,
         })
     })
     .then(response => response.json())
     .then(data => {
-        alert(data.mensagem); // Exibe a mensagem de resposta
-        
+        alert(data.mensagem);
+        console.log("Resposta do servidor (enviar jogada):", data);
+
         if (jogada === 'stand') {
             jogadorAtual().then(isJogadorAtual => {
                 if (!isJogadorAtual) {
                     alert("Não há mais jogadores. O jogo será finalizado.");
                     finalizarJogo();
                 } else {
-                    jogadorAtual(); // Atualiza o jogador atual
+                    jogadorAtual();
                 }
             });
         }
-
-        if (jogada === 'hit'){
-            
-        }
-
-        getCards(); // Atualiza as cartas após a jogada
+        getCards();
     })
-    .catch(error => console.error("Erro ao enviar jogada:", error));
+    .then(() => jogadorAtual());  // Atualiza o jogador atual após enviar a jogada
 }
-
-
-
-
-
-
 
 // Proximo Jogador
 function proximoJogador() {
-    return fetch(`${API_URL}/proximoJogador`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro na resposta da API');
-            }
+    console.log("Buscando próximo jogador...");
 
-            return response.text().then(text => {
-                if (text.trim() === "") {
-                    throw new Error('Não há mais jogadores disponíveis');
-                }
-                return JSON.parse(text); // Parse manual se a resposta não for JSON válido
-            });
-        })
+    return fetch(`${API_URL}/proximoJogador`)
+        .then(response => response.json())
         .then(player => {
-            // Caso haja um jogador, apenas redireciona para o próximo jogador
-            if (player && player.nome) {
-                jogadorAtual();  // Chama novamente a função para exibir o próximo jogador
-                return true;  // Retorna true se jogador encontrado
+            if (player) {
+                console.log("Próximo jogador:", player);
+                return true;
             } else {
-                console.error('Não há mais jogadores disponíveis');
-                throw new Error('Não há mais jogadores disponíveis');
+                alert("Não há mais jogadores disponíveis.");
+                finalizarJogo();
+                return false;
             }
         })
+        .then(() => jogadorAtual())  // Atualiza o jogador atual após buscar o próximo jogador
         .catch(error => {
             console.error('Erro ao buscar próximo jogador:', error);
-            alert("Não há mais jogadores disponíveis. O jogo será finalizado.");
-            console.log("FInalizou4")
-            finalizarJogo();  // Função que finaliza o jogo
-            return false;  // Retorna false em caso de erro ou falta de jogadores
+            alert("Erro ao buscar próximo jogador.");
+            finalizarJogo();
+            return false;
         });
 }
 
+
 // Atualiza a lista de jogadores ao carregar
-document.addEventListener("DOMContentLoaded", listPlayers);
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Página carregada, atualizando lista de jogadores...");
+    listPlayers();
+});
