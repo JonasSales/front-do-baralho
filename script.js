@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const apiUrl = "http://localhost:8080/blackjack";  // Substitua pela URL da sua API
     let partidaIniciada = false;
-    let contador = 10;
+    let contador = 15;
     let intervaloContador;
 
     function exibirMensagem(mensagem) {
@@ -49,13 +49,13 @@ document.addEventListener("DOMContentLoaded", function() {
         try {
             const response = await fetch(`${apiUrl}/jogadoratual`);
             const jogadoresAtuais = await response.json();
-            if (jogadoresAtuais != null) {
+            if (jogadoresAtuais.length > 0) {
                 jogadorAtualInfo.textContent = jogadoresAtuais[0].nome;
             } else {
-                finalizarJogo();
+                finalizarJogo(); // Finaliza automaticamente quando não há jogadores
             }
         } catch (error) {
-            finalizarJogo();
+            finalizarJogo(); // Também finaliza em caso de erro
         }
     }
 
@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", function() {
     function finalizarJogo() {
         if (partidaIniciada) {
             partidaIniciada = false;
-            btnFinalizar.disabled = true;
             hitButton.disabled = true;
             standButton.disabled = true;
     
@@ -86,18 +85,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(data => {
                 alert(data);
             })
-            .catch(error => console.error("Erro ao finalizar jogo:", error))
-            .finally(() => {
-                setTimeout(() => {
-                    btnFinalizar.disabled = false;
-                }, 5000);
-            });
-
+            .catch(error => console.error("Erro ao finalizar jogo:", error));
+    
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         }
     }
+    
 
     async function fazerJogada(jogada) {
         const jogadorAtual = jogadorAtualInfo.textContent;
@@ -122,8 +117,14 @@ document.addEventListener("DOMContentLoaded", function() {
             exibirJogadorAtual();
             exibirCartas();
     
-            if (data.pontuacao > 21 || jogada === 'stand') {
+            if (jogada === 'stand'){
                 proximoJogador();
+            }
+
+            if (jogada === 'hit' && data.pontuacao > 21) {
+                atualizarInformacoes();
+                proximoJogador();
+                
             }
         } catch (error) {
             exibirMensagem("Erro ao realizar jogada.");
@@ -172,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         exibirMensagem('Erro ao verificar jogadores ou iniciar a partida.');
                     }
 
-                    contador = 10;
+                    contador = 15;
                 }
             }, 1000);
         }
