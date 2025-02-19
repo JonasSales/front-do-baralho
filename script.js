@@ -6,26 +6,29 @@ document.addEventListener("DOMContentLoaded", function() {
     const hitButton = document.getElementById('hit');
     const standButton = document.getElementById('stand');
     const btnFinalizar = document.getElementById('btnFinalizar');
+    const contadorDisplay = document.getElementById('contador-display');
 
     const apiUrl = "http://localhost:8080/blackjack";  // Substitua pela URL da sua API
     let partidaIniciada = false;
+    let contador = 10;
+    let intervaloContador;
 
     function exibirMensagem(mensagem) {
         mensagemDiv.textContent = mensagem;
     }
 
-    // Verifica se a partida foi iniciada
     async function verificarPartidaIniciada() {
         try {
             const response = await fetch(`${apiUrl}/partidaIniciada`);
             const data = await response.json();
-            partidaIniciada = data.jogoIniciado === 'true'; // Ajuste com base na resposta da API
+            partidaIniciada = data.jogoIniciado === 'true'; // Ajuste conforme a resposta da API
 
-            // Atualiza o estado do botão de finalizar com base na partida
             if (partidaIniciada) {
                 btnFinalizar.disabled = false;
+                pararContagem();
             } else {
                 btnFinalizar.disabled = true;
+                iniciarContagem();
             }
         } catch (error) {
             exibirMensagem("Erro ao verificar o estado da partida.");
@@ -68,30 +71,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    async function proximoJogador() {
-        try {
-            const response = await fetch(`${apiUrl}/proximoJogador`);
-            const data = await response.json();
-    
-            if (!data || Object.keys(data).length === 0) {
-                finalizarJogo(); // Se não houver retorno, finaliza o jogo
-                return;
-            }
-    
-            exibirMensagem(data.mensagem);
-            atualizarInformacoes();  // Atualiza as informações após a mudança de turno
-        } catch (error) {
-            atualizarInformacoes();
-            finalizarJogo();
-        }
-    }
-
     function finalizarJogo() {
         if (partidaIniciada) {
-            partidaIniciada = true;
+            partidaIniciada = false;
             btnFinalizar.disabled = true;
-    
-            // Desabilitar outros botões do jogo (como os de ação)
             hitButton.disabled = true;
             standButton.disabled = true;
     
@@ -101,17 +84,15 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(response => response.text())
             .then(data => {
-                alert(data); // Mostrar a mensagem de finalização recebida do servidor
+                alert(data);
             })
             .catch(error => console.error("Erro ao finalizar jogo:", error))
             .finally(() => {
                 setTimeout(() => {
-                    partidaIniciada = false;
                     btnFinalizar.disabled = false;
-                }, 5000); // Reset do cooldown após 5 segundos
+                }, 5000);
             });
-    
-            // Opcionalmente, recarregar a página após 1 segundo
+
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
@@ -129,9 +110,7 @@ document.addEventListener("DOMContentLoaded", function() {
         try {
             const response = await fetch(`${apiUrl}/jogada`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     player: { nome: jogadorAtual },
                     jogada: jogada
@@ -140,10 +119,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
             const data = await response.json();
             exibirMensagem(data.mensagem);
-            exibirJogadorAtual();  // Atualiza jogador atual
-            exibirCartas();        // Atualiza cartas
+            exibirJogadorAtual();
+            exibirCartas();
     
-            // Se o jogador perdeu ou escolheu "stand", chama proximoJogador()
             if (data.pontuacao > 21 || jogada === 'stand') {
                 proximoJogador();
             }
@@ -164,13 +142,48 @@ document.addEventListener("DOMContentLoaded", function() {
         listarJogadores();
         exibirJogadorAtual();
         exibirCartas();
+        verificarPartidaIniciada();
     }
 
-    // Verifica se a partida foi iniciada ao carregar a página
-    verificarPartidaIniciada();
+    function iniciarContagem() {
+        if (!intervaloContador) {
+            intervaloContador = setInterval(async () => {
+                contador--;
+                contadorDisplay.textContent = `Tempo: ${contador} segundos para a próxima rodada`;
 
-    // Atualiza informações a cada segundo
+                if (contador === 0) {
+                    try {
+                        const response = await fetch(`${apiUrl}/jogadores`);
+                        const jogadores = await response.json();
+            
+                        if (jogadores.length >= 2) {
+                            const iniciarResponse = await fetch(`${apiUrl}/iniciar`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+            
+                            const data = await iniciarResponse.json();
+                            exibirMensagem(data.mensagem || 'Partida iniciada com sucesso!');
+                            verificarPartidaIniciada();
+                        } else {
+                            exibirMensagem('Aguardando mais jogadores para iniciar a partida...');
+                        }
+                    } catch (error) {
+                        exibirMensagem('Erro ao verificar jogadores ou iniciar a partida.');
+                    }
+
+                    contador = 10;
+                }
+            }, 1000);
+        }
+    }
+
+    function pararContagem() {
+        clearInterval(intervaloContador);
+        intervaloContador = null;
+    }
+
+    verificarPartidaIniciada();
     setInterval(atualizarInformacoes, 1000);
-    
     atualizarInformacoes();
 });
