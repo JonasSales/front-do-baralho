@@ -5,11 +5,31 @@ document.addEventListener("DOMContentLoaded", function() {
     const mensagemDiv = document.getElementById('mensagem');
     const hitButton = document.getElementById('hit');
     const standButton = document.getElementById('stand');
+    const btnFinalizar = document.getElementById('btnFinalizar');
 
     const apiUrl = "http://localhost:8080/blackjack";  // Substitua pela URL da sua API
+    let partidaIniciada = false;
 
     function exibirMensagem(mensagem) {
         mensagemDiv.textContent = mensagem;
+    }
+
+    // Verifica se a partida foi iniciada
+    async function verificarPartidaIniciada() {
+        try {
+            const response = await fetch(`${apiUrl}/partidaIniciada`);
+            const data = await response.json();
+            partidaIniciada = data.jogoIniciado === 'true'; // Ajuste com base na resposta da API
+
+            // Atualiza o estado do botão de finalizar com base na partida
+            if (partidaIniciada) {
+                btnFinalizar.disabled = false;
+            } else {
+                btnFinalizar.disabled = true;
+            }
+        } catch (error) {
+            exibirMensagem("Erro ao verificar o estado da partida.");
+        }
     }
 
     async function listarJogadores() {
@@ -26,13 +46,13 @@ document.addEventListener("DOMContentLoaded", function() {
         try {
             const response = await fetch(`${apiUrl}/jogadoratual`);
             const jogadoresAtuais = await response.json();
-            if (jogadoresAtuais.length > 0) {
+            if (jogadoresAtuais != null) {
                 jogadorAtualInfo.textContent = jogadoresAtuais[0].nome;
             } else {
-                jogadorAtualInfo.textContent = "Não há jogador atual.";
+                finalizarJogo();
             }
         } catch (error) {
-            exibirMensagem("Erro ao carregar o jogador atual.");
+            finalizarJogo();
         }
     }
 
@@ -54,41 +74,58 @@ document.addEventListener("DOMContentLoaded", function() {
             const data = await response.json();
     
             if (!data || Object.keys(data).length === 0) {
-                finalizarJogo(); // Chama a função para finalizar o jogo
+                finalizarJogo(); // Se não houver retorno, finaliza o jogo
                 return;
             }
     
             exibirMensagem(data.mensagem);
-            atualizarInformacoes(); // Atualiza as informações após a mudança de turno
+            atualizarInformacoes();  // Atualiza as informações após a mudança de turno
         } catch (error) {
-            exibirMensagem("Erro ao passar para o próximo jogador.");
+            atualizarInformacoes();
+            finalizarJogo();
         }
     }
 
-    async function finalizarJogo() {
-        try {
-            const response = await fetch(`${apiUrl}/finalizar`);
-            const data = await response.json();
-            
-            exibirMensagem(data.mensagem || "O jogo foi finalizado.");
-            
-            // Desativar os botões para impedir novas jogadas
+    function finalizarJogo() {
+        if (partidaIniciada) {
+            partidaIniciada = true;
+            btnFinalizar.disabled = true;
+    
+            // Desabilitar outros botões do jogo (como os de ação)
             hitButton.disabled = true;
             standButton.disabled = true;
-        } catch (error) {
-            exibirMensagem("Erro ao finalizar o jogo.");
+    
+            fetch(`${apiUrl}/finalizar`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data); // Mostrar a mensagem de finalização recebida do servidor
+            })
+            .catch(error => console.error("Erro ao finalizar jogo:", error))
+            .finally(() => {
+                setTimeout(() => {
+                    partidaIniciada = false;
+                    btnFinalizar.disabled = false;
+                }, 5000); // Reset do cooldown após 5 segundos
+            });
+    
+            // Opcionalmente, recarregar a página após 1 segundo
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         }
     }
-    
 
     async function fazerJogada(jogada) {
         const jogadorAtual = jogadorAtualInfo.textContent;
-
+    
         if (!jogadorAtual || !jogada) {
             exibirMensagem("Jogador atual ou jogada inválida.");
             return;
         }
-
+    
         try {
             const response = await fetch(`${apiUrl}/jogada`, {
                 method: 'POST',
@@ -100,12 +137,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     jogada: jogada
                 })
             });
-
+    
             const data = await response.json();
             exibirMensagem(data.mensagem);
-            exibirJogadorAtual();
-            exibirCartas();
-
+            exibirJogadorAtual();  // Atualiza jogador atual
+            exibirCartas();        // Atualiza cartas
+    
+            // Se o jogador perdeu ou escolheu "stand", chama proximoJogador()
             if (data.pontuacao > 21 || jogada === 'stand') {
                 proximoJogador();
             }
@@ -128,6 +166,10 @@ document.addEventListener("DOMContentLoaded", function() {
         exibirCartas();
     }
 
+    // Verifica se a partida foi iniciada ao carregar a página
+    verificarPartidaIniciada();
+
+    // Atualiza informações a cada segundo
     setInterval(atualizarInformacoes, 1000);
     
     atualizarInformacoes();
