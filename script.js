@@ -8,27 +8,79 @@ document.addEventListener("DOMContentLoaded", function() {
     const btnFinalizar = document.getElementById('btnFinalizar');
     const contadorDisplay = document.getElementById('contador-display');
 
-    const apiUrl = "http://localhost:8080/blackjack";  // Substitua pela URL da sua API
+    const apiUrl = "http://localhost:8080/blackjack/mesas";  // Substitua pela URL da sua API
     let partidaIniciada = false;
-    let contador = 15;
-    let intervaloContador;
+
+    // Variáveis para armazenar o ID da mesa e o token da mesa
+    let mesaId = null;
+    let mesaToken = null;
+
+    // Função para criar a mesa (será chamada apenas uma vez)
+    async function criarMesa() {
+        if (!mesaId) { // Só cria a mesa se não existir um ID
+            try {
+                const response = await fetch("http://localhost:8080/blackjack/criarMesa", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                });
+
+                const data = await response.json();
+
+                // Armazenando o ID da mesa e o token
+                mesaId = data.mesaId;
+                mesaToken = data.token;
+
+                console.log("Mesa criada com sucesso:", data);
+                console.log("Mesa ID:", mesaId);
+                console.log("Token da mesa:", mesaToken);
+
+                // Atualiza a interface para mostrar que a mesa foi criada
+                document.getElementById("mensagem").innerText = `Mesa criada com ID: ${mesaId}`;
+
+                // Agora que a mesa foi criada, chama a função de verificar partida
+                verificarPartidaIniciada(); // Chamada aqui, após o mesaId ser definido
+            } catch (error) {
+                console.error("Erro ao criar mesa:", error);
+            }
+        }
+    }
 
     function exibirMensagem(mensagem) {
         mensagemDiv.textContent = mensagem;
     }
 
     async function verificarPartidaIniciada() {
-        try {
-            const response = await fetch(`${apiUrl}/partidaIniciada`);
-            const data = await response.json();
-            partidaIniciada = data.jogoIniciado === 'true'; // Ajuste conforme a resposta da API
+        // Verifica se o mesaId foi definido
+        if (!mesaId) {
+            exibirMensagem("ID da mesa não definido.");
+            return; // Se o mesaId não for válido, a função não faz nada
+        }
 
-            if (partidaIniciada) {
-                btnFinalizar.disabled = false;
-                pararContagem();
+        try {
+            // Faz a requisição usando o mesaId
+            const response = await fetch(`${apiUrl}/${mesaId}`, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                }
+            });
+            const data = await response.json();
+            console.log(data);
+
+            // Verifica se o valor de 'jogoIniciado' é true
+            if (data.jogoIniciado === true) {
+                partidaIniciada = true; // A partida foi iniciada
+                btnFinalizar.disabled = false; // Habilita o botão de finalizar
+                // Chama as funções de exibição após a partida ser iniciada
+                listarJogadores();
+                exibirJogadorAtual();
+                exibirCartas();
             } else {
-                btnFinalizar.disabled = true;
-                iniciarContagem();
+                partidaIniciada = false;  // A partida não foi iniciada ainda
+                btnFinalizar.disabled = true; // Desabilita o botão de finalizar
             }
         } catch (error) {
             exibirMensagem("Erro ao verificar o estado da partida.");
@@ -37,7 +89,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     async function listarJogadores() {
         try {
-            const response = await fetch(`${apiUrl}/jogadores`);
+            const response = await fetch(`${apiUrl}/${mesaId}/jogadores`, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                }
+            });
             const jogadores = await response.json();
             jogadoresList.innerHTML = jogadores.map(player => `<li>${player.nome}</li>`).join('');
         } catch (error) {
@@ -47,7 +105,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     async function exibirJogadorAtual() {
         try {
-            const response = await fetch(`${apiUrl}/jogadoratual`);
+            const response = await fetch(`${apiUrl}/${mesaId}/jogadoratual`, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                }
+            });
             const jogadoresAtuais = await response.json();
             if (jogadoresAtuais.length > 0) {
                 jogadorAtualInfo.textContent = jogadoresAtuais[0].nome;
@@ -61,7 +125,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     async function exibirCartas() {
         try {
-            const response = await fetch(`${apiUrl}/cartas`);
+            const response = await fetch(`${apiUrl}/${mesaId}/cartas`, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                }
+            });
             const cartasPorJogador = await response.json();
             cartasInfo.innerHTML = Object.entries(cartasPorJogador).map(([jogador, cartas]) => {
                 return `<strong>${jogador}</strong>: ${cartas.join(', ')}`;
@@ -76,47 +146,52 @@ document.addEventListener("DOMContentLoaded", function() {
             partidaIniciada = false;
             hitButton.disabled = true;
             standButton.disabled = true;
-    
-            fetch(`${apiUrl}/finalizar`, {
+
+            fetch(`${apiUrl}/${mesaId}/finalizar`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                }
             })
             .then(response => response.text())
             .then(data => {
                 alert(data);
             })
             .catch(error => console.error("Erro ao finalizar jogo:", error));
-    
+
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         }
     }
-    
 
     async function fazerJogada(jogada) {
         const jogadorAtual = jogadorAtualInfo.textContent;
-    
+
         if (!jogadorAtual || !jogada) {
             exibirMensagem("Jogador atual ou jogada inválida.");
             return;
         }
-    
+
         try {
-            const response = await fetch(`${apiUrl}/jogada`, {
+            const response = await fetch(`${apiUrl}/${mesaId}/jogada`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mesaToken}`  // Adiciona o token de autorização
+                },
                 body: JSON.stringify({
                     player: { nome: jogadorAtual },
                     jogada: jogada
                 })
             });
-    
+
             const data = await response.json();
             exibirMensagem(data.mensagem);
             exibirJogadorAtual();
             exibirCartas();
-    
+
             if (jogada === 'stand'){
                 proximoJogador();
             }
@@ -124,7 +199,6 @@ document.addEventListener("DOMContentLoaded", function() {
             if (jogada === 'hit' && data.pontuacao > 21) {
                 atualizarInformacoes();
                 proximoJogador();
-                
             }
         } catch (error) {
             exibirMensagem("Erro ao realizar jogada.");
@@ -146,37 +220,22 @@ document.addEventListener("DOMContentLoaded", function() {
         verificarPartidaIniciada();
     }
 
+    // Funções relacionadas ao contador
+
+    let contador = 15;
+    let intervaloContador;
+
     function iniciarContagem() {
-        if (!intervaloContador) {
-            intervaloContador = setInterval(async () => {
-                contador--;
-                contadorDisplay.textContent = `Tempo: ${contador} segundos para a próxima rodada`;
+        intervaloContador = setInterval(function() {
+            contador--;
+            console.log(contador); // Verifica se o contador está diminuindo corretamente
+            contadorDisplay.textContent = `Tempo: ${contador} segundos`;
 
-                if (contador === 0) {
-                    try {
-                        const response = await fetch(`${apiUrl}/jogadores`);
-                        const jogadores = await response.json();
-            
-                        if (jogadores.length >= 2) {
-                            const iniciarResponse = await fetch(`${apiUrl}/iniciar`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' }
-                            });
-            
-                            const data = await iniciarResponse.json();
-                            exibirMensagem(data.mensagem || 'Partida iniciada com sucesso!');
-                            verificarPartidaIniciada();
-                        } else {
-                            exibirMensagem('Aguardando mais jogadores para iniciar a partida...');
-                        }
-                    } catch (error) {
-                        exibirMensagem('Erro ao verificar jogadores ou iniciar a partida.');
-                    }
-
-                    contador = 15;
-                }
-            }, 1000);
-        }
+            if (contador === 0) {
+                // Aqui você pode adicionar a lógica que deseja quando o contador chegar a zero
+                contador = 15;
+            }
+        }, 1000);
     }
 
     function pararContagem() {
@@ -184,7 +243,8 @@ document.addEventListener("DOMContentLoaded", function() {
         intervaloContador = null;
     }
 
-    verificarPartidaIniciada();
-    setInterval(atualizarInformacoes, 1000);
-    atualizarInformacoes();
+    // Inicia a contagem quando a página carrega
+    iniciarContagem();
+
+    criarMesa();
 });
