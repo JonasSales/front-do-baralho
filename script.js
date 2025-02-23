@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
             const jogadores = await response.json();
-            jogadoresList.innerHTML = jogadores.map(player => `<li>${player.nome}</li>`).join('');
+            jogadoresList.innerHTML = jogadores.map(player => `<li>${player.name}</li>`).join('');
         } catch (error) {
             exibirMensagem("Erro ao carregar jogadores.");
         }
@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Funções relacionadas ao contador
 
-    let contador = 15;
+    let contador = 16;
     let intervaloContador;
 
     function iniciarContagem() {
@@ -233,18 +233,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (contador === 0) {
                 // Aqui você pode adicionar a lógica que deseja quando o contador chegar a zero
-                contador = 15;
+                contador = 16
             }
         }, 1000);
     }
 
-    function pararContagem() {
-        clearInterval(intervaloContador);
-        intervaloContador = null;
-    }
+    
 
     // Inicia a contagem quando a página carrega
     iniciarContagem();
+
+    // Inicia a atualização automática a cada 1 segundo
+    const intervaloAtualizacao = setInterval(atualizarInformacoes, 2500);
 
     criarMesa();
 });
