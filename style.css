@@ -1,54 +1,60 @@
-/* Estilo básico para a página */
 body {
     font-family: Arial, sans-serif;
-    text-align: center;
-    background-color: #2e7d32;
-    color: white;
-}
-
-/* Estilo do título */
-h1 {
-    margin-top: 20px;
-}
-
-/* Seção de jogadores */
-#jogadores, #jogador-atual, #cartas, #mensagens {
-    margin: 20px;
-}
-
-/* Estilo dos botões */
-button {
-    background-color: #ffcc00;
-    border: none;
-    padding: 10px;
-    margin: 5px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-button:hover {
-    background-color: #ffdb4d;
-}
-
-/* Lista de jogadores */
-#lista-jogadores {
-    list-style: none;
+    background-color: #f4f4f4;
+    margin: 0;
     padding: 0;
 }
 
-/* Estilo das cartas */
-#cartas-info {
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.mesas-list {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
     gap: 10px;
 }
 
-.card {
-    background-color: white;
-    color: black;
-    padding: 10px;
+.mesa-card {
+    padding: 15px;
+    border: 1px solid #ddd;
     border-radius: 5px;
-    width: 50px;
-    text-align: center;
+    background-color: #f9f9f9;
+}
+
+.mesa-card h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #555;
+}
+
+.mesa-card p {
+    margin: 5px 0;
+}
+
+button {
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }

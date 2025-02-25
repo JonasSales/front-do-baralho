@@ -3,49 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack Game</title>
-    <link rel="stylesheet" href="style.css">  <!-- Link para o CSS -->
+    <title>Blackjack - Mesas</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Blackjack Game</h1>
-    </header>
+    <div class="container">
+        <h1>Mesas de Blackjack</h1>
+        <button id="criar-mesa">Criar Nova Mesa</button>
+        <div id="mesas-list" class="mesas-list"></div>
+    </div>
 
-    <section id="jogadores">
-        <h2>Jogadores</h2>
-        <ul id="lista-jogadores"></ul>
-    </section>
-
-    <section id="jogador-atual">
-        <h2>Jogador Atual</h2>
-        <p id="jogador-atual-info">Carregando...</p>
-    </section>
-
-    <section id="cartas">
-        <h2>Cartas dos Jogadores</h2>
-        <div id="cartas-info"></div>
-    </section>
-
-    <section id="jogadas">
-        <h2>Jogadas</h2>
-        <button id="hit">Hit</button>
-        <button id="stand">Stand</button>
-    </section>
-
-    <section id="mensagens">
-        <h2>Mensagens</h2>
-        <p id="mensagem"></p>
-    </section>
-
-    <section id="contador">
-        <h2>Contador</h2>
-        <p id="contador-display">Tempo: 0 segundos</p>
-    </section>
-
-    <section id="finalizar-jogo">
-        <button id="btnFinalizar">Finalizar Jogo</button>
-    </section>
-
-    <script src="script.js"></script>  <!-- Link para o JavaScript -->
+    <script src="script.js"></script>
 </body>
 </html>
