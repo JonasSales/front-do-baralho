@@ -56,11 +56,25 @@
             font-weight: bold;
             margin-top: 20px;
         }
+        #vencedor-info {
+            margin-top: 20px;
+            background-color: #2ecc71;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Mesa <span id="mesa-id"></span></h1>
+        
+        <!-- Div para mostrar informações do vencedor e próxima partida -->
+        <div id="vencedor-info">
+            <p id="vencedor">Vencedor da última partida: <strong>-</strong></p>
+            <p id="proxima-partida">A próxima partida começa em: <strong>5 minutos</strong></p>
+        </div>
+
         <div id="mesa-info">
             <p>Jogadores: <span id="jogadores-count">0</span></p>
             <p>Jogador atual: <span id="jogador-atual" class="jogador-atual">-</span></p>
