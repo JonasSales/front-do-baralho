@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Função para exibir as mesas na página
     function displayMesas(mesas) {
         mesasList.innerHTML = '';
+        if (mesas.length === 0) {
+            mesasList.innerHTML = '<p>Nenhuma mesa disponível no momento.</p>';
+            return;
+        }
+
         mesas.forEach(mesa => {
             const mesaCard = document.createElement('div');
             mesaCard.className = 'mesa-card';
@@ -34,14 +39,28 @@ document.addEventListener('DOMContentLoaded', function () {
             const jogadoresInfo = document.createElement('p');
             jogadoresInfo.textContent = `Jogadores: ${mesa.quantidadeDeJogadores}`;
 
+            const statusInfo = document.createElement('p');
+            statusInfo.textContent = `Status: ${mesa.jogoIniciado ? 'Jogo Iniciado' : 'Aguardando Jogadores'}`;
+
+            const encerradaInfo = document.createElement('p');
+            encerradaInfo.textContent = `Encerrada: ${mesa.todosJogadoresEncerraramMao ? 'Sim' : 'Não'}`;
+
             const entrarButton = document.createElement('button');
             entrarButton.textContent = 'Entrar na Mesa';
             entrarButton.setAttribute('data-mesa-id', mesa.mesaId);
             entrarButton.addEventListener('click', () => entrarNaMesa(mesa.mesaId));
 
+            // Desabilita o botão se o jogo já começou ou a mesa está encerrada
+            if (mesa.jogoIniciado || mesa.todosJogadoresEncerraramMao) {
+                entrarButton.disabled = true;
+                entrarButton.textContent = 'Mesa Indisponível';
+            }
+
             mesaCard.appendChild(mesaId);
             mesaCard.appendChild(mesaInfo);
             mesaCard.appendChild(jogadoresInfo);
+            mesaCard.appendChild(statusInfo);
+            mesaCard.appendChild(encerradaInfo);
             mesaCard.appendChild(entrarButton);
 
             mesasList.appendChild(mesaCard);
@@ -57,11 +76,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        criarMesaButton.disabled = true;
+        criarMesaButton.textContent = 'Criando Mesa...';
+
         try {
             const response = await fetch('http://localhost:8080/blackjack/criarMesa', {
-                headers: {
-                    'Authorization': `Bearer ${tokenJogador}` // Envia o token do usuário
-                }
             });
 
             if (!response.ok) {
@@ -83,6 +102,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             console.error('Erro:', error);
             alert(error.message || 'Erro ao criar mesa. Tente novamente.');
+        } finally {
+            criarMesaButton.disabled = false;
+            criarMesaButton.textContent = 'Criar Nova Mesa';
         }
     });
 
