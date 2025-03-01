@@ -6,7 +6,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1000px; /* Ajustando o tamanho da área do conteúdo */
     margin: 50px auto;
     padding: 20px;
     background-color: #fff;
@@ -19,9 +19,10 @@ h1 {
 }
 
 .mesas-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Divide em 2 colunas */
+    gap: 20px; /* Espaço entre os cards */
+    margin-top: 20px;
 }
 
 .mesa-card {
@@ -29,6 +30,9 @@ h1 {
     border: 1px solid #ddd;
     border-radius: 5px;
     background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espaçamento entre as informações da mesa */
 }
 
 .mesa-card h2 {

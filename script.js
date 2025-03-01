@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
     const mesasList = document.getElementById('mesas-list');
-    const criarMesaButton = document.getElementById('criar-mesa');
 
     // Função para buscar as mesas da API
     async function fetchMesas() {
@@ -48,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const entrarButton = document.createElement('button');
             entrarButton.textContent = 'Entrar na Mesa';
             entrarButton.setAttribute('data-mesa-id', mesa.mesaId);
-            entrarButton.addEventListener('click', () => entrarNaMesa(mesa.mesaId));
+            entrarButton.addEventListener('click', () => entrarNaMesaComoObservador(mesa.mesaId));
 
             // Desabilita o botão se o jogo já começou ou a mesa está encerrada
             if (mesa.jogoIniciado || mesa.todosJogadoresEncerraramMao) {
@@ -67,86 +66,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Função para criar uma nova mesa
-    criarMesaButton.addEventListener('click', async () => {
-        const tokenJogador = localStorage.getItem('token'); // Token do usuário
-        if (!tokenJogador) {
-            alert('Você precisa estar logado para criar uma mesa.');
-            window.location.href = '/login.html';
-            return;
-        }
-
-        criarMesaButton.disabled = true;
-        criarMesaButton.textContent = 'Criando Mesa...';
-
-        try {
-            const response = await fetch('http://localhost:8080/blackjack/criarMesa', {
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao criar mesa');
-            }
-
-            const data = await response.json();
-
-            // Verifica se o token da mesa foi retornado
-            if (!data.token) {
-                throw new Error('Token da mesa não foi retornado pelo servidor.');
-            }
-
-            // Armazena o token da mesa no localStorage
-            localStorage.setItem('tokenMesa', data.token);
-
-            // Redireciona para a página da mesa
-            window.location.href = `/mesa.html?mesaId=${data.mesaId}`;
-        } catch (error) {
-            console.error('Erro:', error);
-            alert(error.message || 'Erro ao criar mesa. Tente novamente.');
-        } finally {
-            criarMesaButton.disabled = false;
-            criarMesaButton.textContent = 'Criar Nova Mesa';
-        }
-    });
 
     // Função para entrar na mesa
-    async function entrarNaMesa(mesaId) {
+    function entrarNaMesaComoObservador(mesaId) {
         const tokenJogador = localStorage.getItem('token'); // Token do usuário
         if (!tokenJogador) {
-            alert('Você precisa estar logado para entrar em uma mesa.');
+            alert('Você precisa estar logado para visualizar uma mesa.');
             window.location.href = '/login.html';
             return;
         }
-
+    
         const entrarButton = document.querySelector(`button[data-mesa-id="${mesaId}"]`);
-        entrarButton.disabled = true;
-        entrarButton.textContent = 'Entrando...';
-
-        try {
-            const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/adicionar`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${tokenJogador}`, // Envia o token do usuário
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao entrar na mesa');
-            }
-
-            const result = await response.json();
-            alert(result.message);
-
-            // Redireciona para a página da mesa após 1 segundo
-            setTimeout(() => {
-                window.location.href = `/mesa.html?mesaId=${mesaId}`;
-            }, 1000);
-        } catch (error) {
-            console.error('Erro:', error);
-            entrarButton.disabled = false;
-            entrarButton.textContent = 'Entrar na Mesa';
-            alert('Erro ao entrar na mesa. Tente novamente.');
+        if (entrarButton) {
+            entrarButton.disabled = true;
+            entrarButton.textContent = 'Redirecionando...';
         }
+    
+        // Redireciona para a página da mesa após 1 segundo
+        setTimeout(() => {
+            window.location.href = `/mesa.html?mesaId=${mesaId}`;
+        }, 1000);
     }
 
     // Busca as mesas ao carregar a página

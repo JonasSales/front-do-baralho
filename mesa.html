@@ -68,24 +68,20 @@
 <body>
     <div class="container">
         <h1>Mesa <span id="mesa-id"></span></h1>
-        
-        <!-- Div para mostrar informações do vencedor e próxima partida -->
-        <div id="vencedor-info">
-            <p id="vencedor">Vencedor da última partida: <strong>-</strong></p>
-            <p id="proxima-partida">A próxima partida começa em: <strong>5 minutos</strong></p>
-        </div>
+
 
         <div id="mesa-info">
             <p>Jogadores: <span id="jogadores-count">0</span></p>
             <p>Jogador atual: <span id="jogador-atual" class="jogador-atual">-</span></p>
         </div>
         <div id="cartas-jogadores">
-            <h3>Cartas dos Jogadores</h3>
+            <h3>Suas cartas</h3>
             <ul id="cartas-lista"></ul>
         </div>
         <button id="hit" disabled>Hit</button>
         <button id="stand" disabled>Stand</button>
         <button id="sair-mesa">Sair da Mesa</button>
+        <button id="entrar-mesa" data-mesa-id="">Entrar na Mesa</button>
 
         <div id="contador" class="contador">
             A partida começará em: <span id="contador-timer">60</span> segundos

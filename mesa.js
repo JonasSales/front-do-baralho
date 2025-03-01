@@ -7,9 +7,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const standButton = document.getElementById('stand');
     const sairMesaButton = document.getElementById('sair-mesa');
     const contadorElement = document.getElementById('contador');
-    const vencedorInfoElement = document.getElementById('vencedor-info');
     const vencedorElement = document.getElementById('vencedor');
     const proximaPartidaElement = document.getElementById('proxima-partida');
+    const entrarMesaButton = document.getElementById('entrar-mesa');
+
     const urlParams = new URLSearchParams(window.location.search);
     const mesaId = urlParams.get('mesaId');
 
@@ -19,12 +20,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Define o atributo data-mesa-id do botão "Entrar na Mesa"
+    entrarMesaButton.setAttribute('data-mesa-id', mesaId);
+
     mesaIdElement.textContent = mesaId;
 
     let contadorIntervalo;
     let atualizacaoIntervalo;
     let jogoIniciado = false;
 
+    // Função para atualizar o contador global
     async function atualizarContadorGlobal() {
         try {
             const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/tempo-restante`);
@@ -35,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (tempoRestante <= 0) {
                 clearInterval(contadorIntervalo);
                 contadorElement.textContent = "0:00";
-                iniciarJogo(); 
+                iniciarJogo(); // Inicia o jogo quando o tempo acabar
             } else {
                 contadorElement.textContent = formatarContador(tempoRestante);
             }
@@ -44,50 +49,64 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Função para formatar o contador
     function formatarContador(segundos) {
         const minutos = Math.floor(segundos / 60);
         const segundosRestantes = segundos % 60;
         return `${minutos}:${segundosRestantes < 10 ? '0' + segundosRestantes : segundosRestantes}`;
     }
 
+    // Função para carregar o estado da mesa
     async function carregarMesa() {
         try {
             const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}`);
             if (!response.ok) throw new Error('Erro ao carregar a mesa');
-    
+
             const mesa = await response.json();
-    
+
+            // Verifica se o jogador já está na mesa
+            const tokenJogador = localStorage.getItem('token');
+            if (tokenJogador) {
+                const userResponse = await fetch('http://localhost:8080/auth/profile', {
+                    headers: { 'Authorization': `Bearer ${tokenJogador}` }
+                });
+
+                if (userResponse.ok) {
+                    const user = await userResponse.json();
+                    const jogadorNaMesa = mesa.jogadores.some(jogador => jogador.id === user.id);
+                    if (jogadorNaMesa) {
+                        entrarMesaButton.style.display = 'none'; // Oculta o botão
+                    }
+                }
+            }
+
             if (!mesa.jogoIniciado) {
                 if (!contadorIntervalo) {
                     contadorIntervalo = setInterval(atualizarContadorGlobal, 1000);
                 }
             } else {
                 jogoIniciado = true;
-                jogadoresCountElement.textContent = mesa.quantidadeDeJogadores;
-    
+                jogadoresCountElement.textContent = mesa.jogadores;
+
                 await atualizarJogadorAtual();
+                await atualizarCartasJogador();
                 await atualizarCartas();
-    
+
                 if (mesa.jogoEncerrado) {
                     // Exibir o vencedor
                     const vencedorResponse = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/vencedor`);
                     if (vencedorResponse.ok) {
                         const vencedor = await vencedorResponse.json();
                         vencedorElement.innerHTML = `Vencedor da última partida: <strong>${vencedor.user.name}</strong>`;
-    
-                        const tempoRestante = 5 * 60; // 5 minutos até a próxima partida
+
+                        const tempoRestante = 60; // 5 minutos até a próxima partida
                         proximaPartidaElement.innerHTML = `A próxima partida começa em: <strong>${formatarContador(tempoRestante)}</strong>`;
                     }
-    
-                    // Cooldown de 5 segundos antes de redirecionar
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-                    // Redirecionar para a página inicial
-                    clearInterval(atualizacaoIntervalo);
-                    window.location.href = '/mesa.html';
-    
-                    // Realizar o reload da página após o redirecionamento
-                    window.location.reload();  // Isso vai recarregar a página geral
+
+                    // Redirecionar após 5 segundos
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 5000);
                 }
             }
         } catch (error) {
@@ -95,12 +114,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Função para atualizar o jogador atual
     async function atualizarJogadorAtual() {
         try {
             const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/jogadoratual`);
             if (response.ok) {
                 const jogadorAtual = await response.json();
-                jogadorAtualElement.textContent = `Jogador Atual: ${jogadorAtual.user.name}`;
+                jogadorAtualElement.textContent = `Jogador Atual: ${jogadorAtual.name}`;
 
                 const tokenJogador = localStorage.getItem('token');
                 if (tokenJogador) {
@@ -110,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (userResponse.ok) {
                         const user = await userResponse.json();
-                        const meuTurno = user.id === jogadorAtual.user.id;
+                        const meuTurno = user.id === jogadorAtual.id;
                         hitButton.disabled = !meuTurno;
                         standButton.disabled = !meuTurno;
                     }
@@ -121,24 +141,42 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Função para atualizar as cartas dos jogadores
     async function atualizarCartas() {
         try {
-            const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/cartas`);
+            const tokenJogador = localStorage.getItem('token');
+            if (!tokenJogador) {
+                console.error('Token não encontrado.');
+                return;
+            }
+    
+            const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/cartas`, {
+                headers: { 'Authorization': `Bearer ${tokenJogador}` }
+            });
+    
             if (response.ok) {
                 const cartas = await response.json();
                 cartasListaElement.innerHTML = '';
-                for (const [jogador, cartasJogador] of Object.entries(cartas)) {
-                    const li = document.createElement('li');
-                    li.textContent = `${jogador}: ${cartasJogador.join(', ')}`;
-                    cartasListaElement.appendChild(li);
-                }
+    
+                // Exibir apenas as cartas do jogador autenticado
+                const li = document.createElement('li');
+                li.textContent = `Suas cartas: ${cartas.join(', ')}`;
+                cartasListaElement.appendChild(li);
+            } else {
+                console.error('Erro ao buscar as cartas:', response.statusText);
             }
         } catch (error) {
             console.error('Erro ao atualizar as cartas:', error);
         }
     }
 
+    // Função para iniciar o jogo
     async function iniciarJogo() {
+        if (jogoIniciado) {
+            alert('O jogo já foi iniciado.');
+            return;
+        }
+
         try {
             const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/iniciar`, {
                 method: 'POST',
@@ -148,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const result = await response.json();
             alert(result.message);
-            jogoIniciado = true;
+            jogoIniciado = true; // Marca o jogo como iniciado
             carregarMesa();
         } catch (error) {
             console.error('Erro:', error);
@@ -172,16 +210,101 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify({ jogada: jogada })
             });
 
-            if (!response.ok) throw new Error('Erro ao realizar a jogada');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Erro ao realizar a jogada');
+            }
 
             const result = await response.json();
             alert(result.mensagem);
             carregarMesa();
         } catch (error) {
             console.error('Erro:', error);
+            alert(error.message);
         }
     }
 
+    // Função para realizar uma jogada (hit ou stand)
+    async function atualizarCartasJogador() {
+    try {
+        const tokenJogador = localStorage.getItem('token');
+        if (!tokenJogador) {
+            console.error('Token não encontrado.');
+            return;
+        }
+
+        const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/cartas`, {
+            headers: { 'Authorization': `Bearer ${tokenJogador}` }
+        });
+
+        if (!response.ok) {
+            console.error('Erro ao buscar as cartas:', response.statusText);
+            return;
+        }
+
+        const cartas = await response.json();
+        if (!Array.isArray(cartas)) {
+            console.error('Resposta inválida da API:', cartas);
+            return;
+        }
+
+        cartasListaElement.innerHTML = ''; 
+        const li = document.createElement('li');
+        li.textContent = `Suas cartas: ${cartas.join(', ')}`;
+        cartasListaElement.appendChild(li);
+    } catch (error) {
+        console.error('Erro ao atualizar as cartas:', error);
+    }
+}
+
+    // Função para entrar na mesa
+    async function entrarNaMesa(mesaId) {
+        const tokenJogador = localStorage.getItem('token'); // Token do usuário
+        if (!tokenJogador) {
+            alert('Você precisa estar logado para entrar em uma mesa.');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        const entrarButton = document.querySelector(`button[data-mesa-id="${mesaId}"]`);
+        if (!entrarButton) {
+            console.error('Button not found for mesaId:', mesaId);
+            alert('Erro ao encontrar o botão de entrada.');
+            return;
+        }
+
+        entrarButton.disabled = true;
+        entrarButton.textContent = 'Entrando...';
+
+        try {
+            const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/adicionar`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${tokenJogador}`, // Envia o token do usuário
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao entrar na mesa');
+            }
+
+            const result = await response.json();
+            alert(result.message);
+
+            // Redireciona para a página da mesa após 1 segundo
+            setTimeout(() => {
+                window.location.href = `/mesa.html?mesaId=${mesaId}`;
+            }, 1000);
+        } catch (error) {
+            console.error('Erro:', error);
+            entrarButton.disabled = false;
+            entrarButton.textContent = 'Entrar na Mesa';
+            alert('Erro ao entrar na mesa. Tente novamente.');
+        }
+    }
+
+    // Event listeners para os botões
     hitButton.addEventListener('click', () => realizarJogada('hit'));
     standButton.addEventListener('click', () => realizarJogada('stand'));
 
@@ -208,5 +331,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    entrarMesaButton.addEventListener('click', () => {
+        const mesaId = new URLSearchParams(window.location.search).get('mesaId');
+        if (!mesaId) {
+            alert('Mesa não encontrada.');
+            return;
+        }
+
+        entrarNaMesa(mesaId); // Chama a função para entrar na mesa
+    });
+
+    // Iniciar a atualização automática do estado da mesa
+    function iniciarAtualizacaoAutomatica() {
+        atualizacaoIntervalo = setInterval(carregarMesa, 5000); // Atualiza a cada 5 segundos
+    }
+
+    // Iniciar o carregamento da mesa e a atualização automática
     carregarMesa();
+    iniciarAtualizacaoAutomatica();
 });
