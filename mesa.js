@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!mesaId) {
         alert('Mesa não encontrada.');
-        window.location.href = '/index.html';
+        window.location.href = 'http://localhost:5500/index.html';
         return;
     }
 
@@ -86,11 +86,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 jogoIniciado = true;
-                jogadoresCountElement.textContent = mesa.jogadores;
+                console.log(mesa.jogadores)
+                jogadoresCountElement.textContent = mesa.jogadores.map(jogador => jogador.name).join(', ');
 
                 await atualizarJogadorAtual();
                 await atualizarCartasJogador();
-                await atualizarCartas();
+                //await atualizarCartas();
 
                 if (mesa.jogoEncerrado) {
                     // Exibir o vencedor
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function iniciarJogo() {
         if (jogoIniciado) {
             alert('O jogo já foi iniciado.');
+            window.location.reload();
             return;
         }
 
@@ -188,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert(result.message);
             jogoIniciado = true; // Marca o jogo como iniciado
             carregarMesa();
+            window.location.reload();
         } catch (error) {
             console.error('Erro:', error);
         }
@@ -197,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const tokenJogador = localStorage.getItem('token');
         if (!tokenJogador) {
             alert('Você precisa estar logado para jogar.');
+            window.location.reload();
             return;
         }
 
@@ -218,51 +222,59 @@ document.addEventListener('DOMContentLoaded', function () {
             const result = await response.json();
             alert(result.mensagem);
             carregarMesa();
+            window.location.reload();
         } catch (error) {
             console.error('Erro:', error);
             alert(error.message);
+            window.location.reload();
         }
     }
 
     // Função para realizar uma jogada (hit ou stand)
     async function atualizarCartasJogador() {
-    try {
-        const tokenJogador = localStorage.getItem('token');
-        if (!tokenJogador) {
-            console.error('Token não encontrado.');
-            return;
+        try {
+            const tokenJogador = localStorage.getItem('token');
+            if (!tokenJogador) {
+                console.error('Token não encontrado.');
+                return;
+            }
+    
+            const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/cartas`, {
+                headers: { 'Authorization': `Bearer ${tokenJogador}` }
+            });
+    
+            if (!response.ok) {
+                console.error('Erro ao buscar as cartas:', response.statusText);
+                return;
+            }
+    
+            const cartas = await response.json();
+            if (!Array.isArray(cartas)) {
+                console.error('Resposta inválida da API:', cartas);
+                return;
+            }
+    
+            cartasListaElement.innerHTML = '';  
+            
+            cartas.forEach(carta => {
+                const li = document.createElement('li');
+                li.textContent = `${carta.letra} de ${carta.naipe}`;
+                cartasListaElement.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Erro ao atualizar as cartas:', error);
         }
-
-        const response = await fetch(`http://localhost:8080/blackjack/mesas/${mesaId}/cartas`, {
-            headers: { 'Authorization': `Bearer ${tokenJogador}` }
-        });
-
-        if (!response.ok) {
-            console.error('Erro ao buscar as cartas:', response.statusText);
-            return;
-        }
-
-        const cartas = await response.json();
-        if (!Array.isArray(cartas)) {
-            console.error('Resposta inválida da API:', cartas);
-            return;
-        }
-
-        cartasListaElement.innerHTML = ''; 
-        const li = document.createElement('li');
-        li.textContent = `Suas cartas: ${cartas.join(', ')}`;
-        cartasListaElement.appendChild(li);
-    } catch (error) {
-        console.error('Erro ao atualizar as cartas:', error);
     }
-}
+    
 
     // Função para entrar na mesa
     async function entrarNaMesa(mesaId) {
         const tokenJogador = localStorage.getItem('token'); // Token do usuário
         if (!tokenJogador) {
             alert('Você precisa estar logado para entrar em uma mesa.');
-            window.location.href = '/login.html';
+            window.location.href = 'http://localhost:5500/login.html';
+            window.location.reload();
+
             return;
         }
 
@@ -270,6 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!entrarButton) {
             console.error('Button not found for mesaId:', mesaId);
             alert('Erro ao encontrar o botão de entrada.');
+            window.location.reload();
             return;
         }
 
@@ -312,6 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const tokenJogador = localStorage.getItem('token');
         if (!tokenJogador) {
             alert('Você precisa estar logado para sair da mesa.');
+            window.location.reload();
             return;
         }
 
@@ -325,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) throw new Error('Erro ao sair da mesa');
             alert('Você saiu da mesa.');
-            window.location.href = '/index.html';
+            window.location.href = 'http://localhost:5500/index.html';
         } catch (error) {
             console.error('Erro:', error);
         }
@@ -335,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const mesaId = new URLSearchParams(window.location.search).get('mesaId');
         if (!mesaId) {
             alert('Mesa não encontrada.');
+            window.location.reload();
             return;
         }
 
